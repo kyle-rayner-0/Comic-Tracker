@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dc Comic Tracker</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      transition: background 0.4s ease;
+    }
+
+    .top-buttons {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .top-buttons button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      color: white;
+      transition: opacity 0.3s;
+    }
+
+    #bgBtn {
+      background: #3498db;
+    }
+
+    #saveBtn {
+      background: #2ecc71;
+    }
+
+    .top-buttons button:hover {
+      opacity: 0.8;
+    }
+
+    .container {
+      width: 888px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      position: relative;
+      margin-top: 50px;
+    }
+
+    #addBoxBtn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 20px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    #addBoxBtn:hover {
+      background: #45a049;
+    }
+
+    .boxes {
+      margin-top: 50px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-right: 6px;
+    }
+
+    .boxes::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .boxes::-webkit-scrollbar-thumb {
+      background: #bbb;
+      border-radius: 3px;
+    }
+
+    .box {
+      background: #fafafa;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      transition: 0.3s;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .remove-btn {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      font-size: 16px;
+      line-height: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .remove-btn:hover {
+      background: #c0392b;
+    }
+
+    .arrow {
+      transition: transform 0.3s ease;
+      cursor: pointer;
+    }
+
+    .arrow.rotate {
+      transform: rotate(90deg);
+    }
+
+    .content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease;
+    }
+
+    .content.open {
+      max-height: none;
+      overflow-y: visible;
+    }
+
+    .content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .content::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 3px;
+    }
+
+    .content p {
+      margin: 8px 0;
+      background: #fff;
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+
+    .mini-boxes {
+      margin-top: 10px;
+      padding-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .add-mini-btn {
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      font-size: 18px;
+      line-height: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .add-mini-btn:hover {
+      background: #2980b9;
+    }
+
+    .done-check {
+      transform: scale(1.2);
+      cursor: pointer;
+    }
+
+    .done {
+      text-decoration: line-through;
+      color: gray;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-buttons">
+    <button id="bgBtn">🖼️ Edit Background</button>
+    <button id="saveBtn">💾 Save</button>
+    <input type="file" id="bgInput" accept="image/*" style="display:none">
+  </div>
+
+  <div class="container">
+    <button id="addBoxBtn">+</button>
+    <div class="boxes" id="boxesContainer"></div>
+  </div>
+
+  <script>
+    let boxCount = 0;
+
+    function createBox(data = { title: "", description: "", done: false, miniBoxes: [] }, parentContainer = document.getElementById("boxesContainer")) {
+      boxCount++;
+      const box = document.createElement("div");
+      box.classList.add("box");
+      const contentId = "contentBox" + boxCount;
+
+      box.innerHTML = `
+        <div class="header">
+          <div class="header-left">
+            <input type="checkbox" class="done-check" ${data.done ? "checked" : ""} onchange="toggleDone(this)">
+            <button class="remove-btn" onclick="removeBox(this)">−</button>
+            <span contenteditable="true" class="editable-title ${data.done ? 'done' : ''}" onclick="event.stopPropagation()">${data.title || 'Box ' + boxCount}</span>
+          </div>
+          <span class="arrow" onclick="toggleBox('${contentId}', this)">▶</span>
+        </div>
+
+        <div class="content" id="${contentId}">
+          <p contenteditable="true" class="editable-description">${data.description || 'Editable text here.'}</p>
+          <button class="add-mini-btn" onclick="createBox(undefined, this.nextElementSibling)">+</button>
+          <div class="mini-boxes"></div>
+        </div>
+      `;
+
+      const miniContainer = box.querySelector(".mini-boxes");
+      data.miniBoxes.forEach(mini => createBox(mini, miniContainer));
+
+      parentContainer.appendChild(box);
+      saveToLocalStorage();
+    }
+
+    function toggleBox(id, el) {
+      const box = el.closest('.box');
+      const content = box.querySelector(`#${id}`);
+      const arrow = box.querySelector('.arrow');
+      content.classList.toggle('open');
+      arrow.classList.toggle('rotate');
+    }
+
+    function removeBox(btn) {
+      const box = btn.closest('.box');
+      box.remove();
+      saveToLocalStorage();
+    }
+
+    function toggleDone(checkbox) {
+      const title = checkbox.closest('.header-left').querySelector('.editable-title');
+      title.classList.toggle('done', checkbox.checked);
+      saveToLocalStorage();
+    }
+
+    function collectBoxData(container) {
+      return Array.from(container.children).filter(el => el.classList.contains('box')).map(box => {
+        const title = box.querySelector('.editable-title')?.innerText || '';
+        const description = box.querySelector('.editable-description')?.innerText || '';
+        const done = box.querySelector('.done-check')?.checked || false;
+        const miniBoxes = collectBoxData(box.querySelector('.mini-boxes'));
+        return { title, description, done, miniBoxes };
+      });
+    }
+
+    function saveToLocalStorage() {
+      const boxes = collectBoxData(document.getElementById('boxesContainer'));
+      const bg = document.body.style.backgroundImage || '';
+      localStorage.setItem('boxesData', JSON.stringify({ boxes, bg }));
+    }
+
+    function loadFromLocalStorage() {
+      const data = JSON.parse(localStorage.getItem('boxesData'));
+      if (!data) return;
+      if (data.bg) document.body.style.backgroundImage = data.bg;
+      if (data.boxes) data.boxes.forEach(box => createBox(box));
+    }
+
+    // Background change
+    document.getElementById("bgBtn").addEventListener("click", () => {
+      document.getElementById("bgInput").click();
+    });
+
+    document.getElementById("bgInput").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        document.body.style.backgroundImage = `url('${event.target.result}')`;
+        saveToLocalStorage();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById("saveBtn").addEventListener("click", saveToLocalStorage);
+    document.getElementById("addBoxBtn").addEventListener("click", () => createBox());
+
+    document.addEventListener("input", (e) => {
+      if (e.target.matches(".editable-title, .editable-description")) {
+        saveToLocalStorage();
+      }
+    });
+
+    loadFromLocalStorage();
+  </script>
+</body>
+</html>
